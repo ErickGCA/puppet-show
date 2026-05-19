@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "puppet-show",
+  "description": "Contract-bound puppets for Claude Code — every subagent dispatch carries a machine-verifiable contract, validated at runtime and return time.",
+  "owner": {
+    "name": "ErickGCA",
+    "url": "https://github.com/ErickGCA"
+  },
+  "plugins": [
+    {
+      "name": "puppet-show",
+      "description": "Contract-bound puppets for Claude Code. Every Task() dispatch ships with a YAML contract (scope_in, scope_out, tools, return_format). PreToolUse hooks validate or block scope/tool violations at runtime; PostToolUse hooks validate the return format and per-finding evidence. Live SSE dashboard + CLI audit/history/suggest. SQLite-backed, zero npm deps.",
+      "version": "0.2.0",
+      "author": { "name": "ErickGCA", "url": "https://github.com/ErickGCA" },
+      "source": "./",
+      "category": "development",
+      "tags": ["subagents", "orchestration", "observability", "governance", "contracts"],
+      "homepage": "https://github.com/ErickGCA/puppet-show"
+    }
+  ]
+}
