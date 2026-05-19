@@ -163,7 +163,7 @@ PUPPET_SHOW_ENFORCE=strict  # turn every contract strict
 ```
 puppet-show/
 ├── .claude-plugin/plugin.json   manifest
-├── settings.json                hook registration (PreToolUse:Task + Pre*: file tools + PostToolUse:Task)
+├── hooks/hooks.json             plugin hook config (PreToolUse:Task + Pre*: file tools + PostToolUse:Task)
 ├── hooks/
 │   ├── puppet-capture.js        Pre/PostToolUse:Task — dispatch capture, return validation, drift detection
 │   └── puppet-runtime.js        PreToolUse:Read|Write|Edit|... — runtime scope/tool enforcement
