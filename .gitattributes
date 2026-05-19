@@ -1,0 +1,16 @@
+# Force LF line endings in the repo. The hook scripts have `#!/usr/bin/env node`
+# shebangs that fail on Linux/macOS when stored as CRLF.
+* text=auto eol=lf
+
+*.md   text eol=lf
+*.json text eol=lf
+*.js   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# Binary
+*.png  binary
+*.jpg  binary
+*.gif  binary

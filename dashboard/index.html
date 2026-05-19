@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>puppet-show · contract-bound puppets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0907;
+        --bg-2: #15100c;
+        --bg-3: #1d1611;
+        --ink: #f0e6d3;
+        --ink-2: #c9bba2;
+        --ink-3: #8a795f;
+        --line: #2a201a;
+        --line-2: #3a2d23;
+        --gold: #d4a24c;
+        --gold-dim: #8b6a2f;
+        --crimson: #c44848;
+        --moss: #7d9265;
+        --plum: #8e6580;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0;
+        background: var(--bg); color: var(--ink);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-feature-settings: 'cv11', 'ss01', 'ss03';
+        min-height: 100vh;
+      }
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212, 162, 76, 0.07), transparent 60%),
+          radial-gradient(ellipse 60% 40% at 100% 100%, rgba(142, 101, 128, 0.05), transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+      }
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,0.008) 3px 4px);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── HEADER ── */
+      header {
+        position: relative;
+        z-index: 1;
+        padding: 32px 48px 24px;
+        border-bottom: 1px solid var(--line);
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: end;
+        gap: 32px;
+      }
+      .brand {
+        font-family: 'Fraunces', Georgia, serif;
+        font-variation-settings: 'opsz' 144;
+        font-size: 44px;
+        font-weight: 700;
+        font-style: italic;
+        letter-spacing: -0.025em;
+        line-height: 1;
+        margin: 0;
+      }
+      .brand .amp { color: var(--gold); font-weight: 400; }
+      .tagline {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-top: 6px;
+      }
+      .stats {
+        display: flex;
+        gap: 32px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+      .stat { text-align: right; }
+      .stat .num {
+        font-family: 'Inter', sans-serif;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        color: var(--ink);
+      }
+      .stat .num.warn { color: var(--gold); }
+      .stat .num.bad { color: var(--crimson); }
+      .stat .num.good { color: var(--moss); }
+      .stat .label {
+        font-size: 9px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-top: 4px;
+      }
+      .live {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pulse {
+        display: inline-block;
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: var(--moss);
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.3; transform: scale(0.7); }
+      }
+
+      /* ── MAIN ── */
+      main {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 0;
+        min-height: calc(100vh - 130px);
+      }
+      .stage { padding: 28px 48px; }
+      .timeline { padding: 28px 32px; background: rgba(0,0,0,0.2); border-left: 1px solid var(--line); max-height: calc(100vh - 130px); overflow-y: auto; }
+
+      h2.section-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin: 0 0 20px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      /* ── FILTERS ── */
+      .filters {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .filter-btn {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        background: transparent;
+        border: 1px solid var(--line-2);
+        color: var(--ink-3);
+        padding: 7px 14px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .filter-btn:hover { color: var(--ink-2); border-color: var(--ink-3); }
+      .filter-btn.active {
+        color: var(--bg);
+        background: var(--gold);
+        border-color: var(--gold);
+      }
+
+      /* ── PUPPET CARDS ── */
+      .puppets {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 18px;
+      }
+      .puppet {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--gold);
+        padding: 22px 24px 20px;
+        position: relative;
+        animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+        transition: border-color 0.2s, transform 0.2s;
+        cursor: pointer;
+      }
+      .puppet:hover {
+        border-color: var(--line-2);
+        transform: translateY(-1px);
+      }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .puppet[data-status="running"] { border-left-color: var(--gold); }
+      .puppet[data-status="complete"][data-score-band="high"] { border-left-color: var(--moss); }
+      .puppet[data-status="complete"][data-score-band="mid"] { border-left-color: var(--gold); }
+      .puppet[data-status="complete"][data-score-band="low"] { border-left-color: var(--crimson); }
+
+      .puppet .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+      .puppet .ptype {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      .puppet[data-status="complete"][data-score-band="high"] .ptype { color: var(--moss); }
+      .puppet[data-status="complete"][data-score-band="low"] .ptype { color: var(--crimson); }
+
+      .puppet .score-pill {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        padding: 3px 8px;
+        border: 1px solid currentColor;
+        color: var(--ink-3);
+        line-height: 1.2;
+      }
+      .puppet[data-score-band="high"] .score-pill { color: var(--moss); }
+      .puppet[data-score-band="mid"] .score-pill { color: var(--gold); }
+      .puppet[data-score-band="low"] .score-pill { color: var(--crimson); }
+      .puppet[data-status="running"] .score-pill { color: var(--ink-3); }
+
+      .puppet .title {
+        font-family: 'Inter', sans-serif;
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+        margin: 8px 0 14px;
+        color: var(--ink);
+      }
+      .puppet .meta {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: var(--ink-3);
+        margin-bottom: 14px;
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .puppet .meta .auto-strict {
+        color: var(--plum);
+        letter-spacing: 0.1em;
+      }
+
+      /* contract chips */
+      .contract-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+      .chip {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        padding: 3px 8px;
+        background: var(--bg-3);
+        border: 1px solid var(--line);
+        color: var(--ink-2);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      .chip.scope-out { color: var(--crimson); border-color: rgba(196,72,72,0.3); }
+      .chip.scope-in { color: var(--moss); border-color: rgba(125,146,101,0.3); }
+      .chip.tool { color: var(--ink-2); }
+
+      .sub-label {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 8px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin: 14px 0 5px;
+      }
+      .puppet pre.body {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11.5px;
+        line-height: 1.55;
+        color: var(--ink-2);
+        margin: 0;
+        max-height: 140px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        padding-right: 4px;
+      }
+      .puppet pre.body::-webkit-scrollbar { width: 4px; }
+      .puppet pre.body::-webkit-scrollbar-thumb { background: var(--line-2); }
+
+      .violations {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px dashed var(--line-2);
+      }
+      .violation {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10.5px;
+        color: var(--crimson);
+        margin-bottom: 4px;
+        line-height: 1.5;
+      }
+      .violation::before {
+        content: '⚠ ';
+        opacity: 0.7;
+      }
+      .violation .kind {
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-right: 6px;
+      }
+      .violation[data-stage="runtime"] { color: var(--crimson); }
+      .violation[data-stage="runtime"]::before { content: '⛔ '; }
+      .violation[data-stage="drift"] { color: var(--plum); }
+      .violation[data-stage="drift"]::before { content: '⤳ '; }
+      .violation .stage-tag {
+        font-size: 9px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-left: 6px;
+      }
+
+      /* ── ALERT + DRIFT ── */
+      .score-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .alert-badge {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--crimson);
+        border: 1px solid rgba(196,72,72,0.45);
+        padding: 2px 6px;
+        line-height: 1.2;
+        animation: alertPulse 2s ease-in-out infinite;
+      }
+      @keyframes alertPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+      }
+      .drift-chip {
+        color: var(--plum);
+        letter-spacing: 0.08em;
+      }
+      .puppet[data-alert="1"] { border-left-color: var(--crimson); }
+      .puppet[data-drift="1"] .title::after {
+        content: ' ⤳';
+        color: var(--plum);
+        font-size: 0.7em;
+        vertical-align: super;
+      }
+
+      /* ── EMPTY ── */
+      .empty {
+        text-align: center;
+        padding: 80px 20px;
+        border: 1px dashed var(--line);
+        color: var(--ink-3);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+      .empty .hint {
+        display: block;
+        margin-top: 18px;
+        font-family: 'JetBrains Mono', monospace;
+        font-style: normal;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        color: var(--gold-dim);
+      }
+
+      /* ── TIMELINE ── */
+      .tl-list {
+        list-style: none;
+        margin: 0;
+        padding: 0 0 0 22px;
+        position: relative;
+      }
+      .tl-list::before {
+        content: '';
+        position: absolute;
+        left: 7px; top: 4px; bottom: 4px;
+        width: 1px;
+        background: var(--line-2);
+      }
+      .tl-item {
+        position: relative;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        padding-bottom: 18px;
+        animation: rise 0.3s ease-out;
+      }
+      .tl-item::before {
+        content: '';
+        position: absolute;
+        left: -22px; top: 5px;
+        width: 9px; height: 9px;
+        border-radius: 50%;
+        background: var(--bg);
+        border: 2px solid var(--gold);
+      }
+      .tl-item[data-kind="complete"]::before { background: var(--moss); border-color: var(--moss); }
+      .tl-item[data-kind="complete"][data-score-band="low"]::before { background: var(--crimson); border-color: var(--crimson); }
+      .tl-item[data-kind="drift"]::before { background: var(--plum); border-color: var(--plum); }
+      .tl-item[data-kind="runtime_violation"]::before { background: var(--crimson); border-color: var(--crimson); }
+      .tl-item[data-kind="drift"] .what .kind { color: var(--plum); }
+      .tl-item[data-kind="runtime_violation"] .what .kind { color: var(--crimson); }
+      .tl-item .when { color: var(--ink-3); font-size: 10px; }
+      .tl-item .what { margin-top: 3px; color: var(--ink-2); line-height: 1.45; }
+      .tl-item .what .kind {
+        color: var(--gold);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 9px;
+      }
+      .tl-item[data-kind="complete"] .what .kind { color: var(--moss); }
+      .tl-item[data-kind="complete"][data-score-band="low"] .what .kind { color: var(--crimson); }
+      .tl-item .what strong {
+        color: var(--ink);
+        font-style: normal;
+      }
+
+      /* ── FOOTER ── */
+      footer {
+        position: relative;
+        z-index: 1;
+        padding: 16px 48px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+      footer .right { display: flex; gap: 22px; align-items: center; }
+      footer button {
+        background: transparent;
+        border: 1px solid var(--line-2);
+        color: var(--ink-3);
+        font: inherit;
+        text-transform: inherit;
+        letter-spacing: inherit;
+        padding: 6px 14px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      footer button:hover {
+        color: var(--crimson);
+        border-color: var(--crimson);
+      }
+      footer a {
+        color: var(--ink-3);
+        text-decoration: none;
+        border-bottom: 1px dotted var(--line-2);
+      }
+      footer a:hover { color: var(--gold); border-color: var(--gold); }
+
+      /* ── MODAL (detail) ── */
+      .modal-bg {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        backdrop-filter: blur(4px);
+        z-index: 10;
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 6vh 4vw;
+        overflow-y: auto;
+      }
+      .modal-bg.open { display: flex; }
+      .modal {
+        background: var(--bg-2);
+        border: 1px solid var(--line-2);
+        max-width: 920px;
+        width: 100%;
+        padding: 36px 40px;
+      }
+      .modal h2 {
+        font-family: 'Inter', sans-serif;
+        font-weight: 700;
+        font-size: 24px;
+        margin: 0 0 8px;
+        letter-spacing: -0.015em;
+      }
+      .modal .modal-meta {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: var(--ink-3);
+        margin-bottom: 24px;
+      }
+      .modal pre {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--ink-2);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        padding: 16px 18px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0 0 18px;
+      }
+      .modal .close-x {
+        position: absolute;
+        right: 30px;
+        top: 28px;
+        background: none;
+        border: none;
+        color: var(--ink-3);
+        font-size: 22px;
+        cursor: pointer;
+      }
+      .modal .close-x:hover { color: var(--crimson); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1 class="brand">puppet&nbsp;<span class="amp">·</span>&nbsp;show</h1>
+        <div class="tagline">contract-bound puppets · maestro's view</div>
+      </div>
+      <div></div>
+      <div class="stats" id="stats">
+        <div class="stat"><div class="num" id="stat-total">—</div><div class="label">dispatches·7d</div></div>
+        <div class="stat"><div class="num" id="stat-score">—</div><div class="label">avg score</div></div>
+        <div class="stat"><div class="num" id="stat-viol">—</div><div class="label">violations·7d</div></div>
+        <div class="stat"><div class="live"><span class="pulse"></span><span id="conn-state">listening</span></div></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="stage">
+        <h2 class="section-title">
+          <span id="stage-heading">Stage — puppets in residence</span>
+        </h2>
+
+        <div class="filters" id="filters">
+          <button class="filter-btn active" data-filter="all">all</button>
+          <button class="filter-btn" data-filter="running">running</button>
+          <button class="filter-btn" data-filter="violated">violated</button>
+          <button class="filter-btn" data-filter="strict">strict</button>
+          <button class="filter-btn" data-filter="alert">alert</button>
+          <button class="filter-btn" data-filter="drift">drift</button>
+        </div>
+
+        <div class="puppets" id="puppets"></div>
+      </section>
+
+      <aside class="timeline">
+        <h2 class="section-title">Timeline</h2>
+        <ul class="tl-list" id="timeline"></ul>
+      </aside>
+    </main>
+
+    <footer>
+      <span>puppet-show v0.2 · contract-bound puppets</span>
+      <div class="right">
+        <a href="/api/stats?days=30">stats·30d (json)</a>
+        <button id="clear">clear log</button>
+      </div>
+    </footer>
+
+    <div class="modal-bg" id="modal-bg">
+      <div class="modal" id="modal">
+        <button class="close-x" id="close-modal">×</button>
+        <div id="modal-content"></div>
+      </div>
+    </div>
+
+    <script>
+      const puppetsEl = document.getElementById('puppets');
+      const timelineEl = document.getElementById('timeline');
+      const statTotal = document.getElementById('stat-total');
+      const statScore = document.getElementById('stat-score');
+      const statViol = document.getElementById('stat-viol');
+      const connState = document.getElementById('conn-state');
+
+      let allDispatches = new Map(); // id → dispatch
+      let currentFilter = 'all';
+      let alertBelow = 70; // refreshed from /api/stats
+
+      function scoreBand(score, status) {
+        if (status === 'running' || score == null) return 'none';
+        if (score >= 85) return 'high';
+        if (score >= 60) return 'mid';
+        return 'low';
+      }
+
+      function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+      function fmtTime(iso) {
+        try {
+          const d = new Date(iso);
+          return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        } catch { return iso || '—'; }
+      }
+      function fmtDur(ms) {
+        if (ms == null) return '';
+        if (ms < 1000) return ms + 'ms';
+        if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+        const m = Math.floor(ms / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return m + 'm ' + s + 's';
+      }
+
+      function passesFilter(d) {
+        if (currentFilter === 'all') return true;
+        if (currentFilter === 'running') return d.status === 'running';
+        if (currentFilter === 'violated') {
+          const total = (d.violations || []).length + (d.runtime_violations || []).length;
+          return total > 0 || (d.violation_count || 0) > 0;
+        }
+        if (currentFilter === 'strict') return d.enforcement === 'strict';
+        if (currentFilter === 'alert') return !!d.alert;
+        if (currentFilter === 'drift') return !!(d.drift && d.drift.length);
+        return true;
+      }
+
+      function renderPuppet(d) {
+        const band = scoreBand(d.score, d.status);
+        const contract = d.contract || {};
+        const chipsIn = (contract.scope_in || []).map((p) => `<span class="chip scope-in">in: ${escapeHtml(p)}</span>`).join('');
+        const chipsOut = (contract.scope_out || []).map((p) => `<span class="chip scope-out">out: ${escapeHtml(p)}</span>`).join('');
+        const chipsTools = (contract.tools || []).map((t) => `<span class="chip tool">${escapeHtml(t)}</span>`).join('');
+
+        const allVio = (d.violations || []).concat(d.runtime_violations || []);
+        const violHtml = allVio.length
+          ? `<div class="violations">${allVio
+              .map((v) => {
+                const stage = v.stage || 'return';
+                const tag = v.tool
+                  ? `<span class="stage-tag">${escapeHtml(v.tool)} · runtime</span>`
+                  : (stage !== 'return' ? `<span class="stage-tag">${escapeHtml(stage)}</span>` : '');
+                return `<div class="violation" data-stage="${stage}"><span class="kind">${escapeHtml(v.kind)}</span> ${escapeHtml(v.detail)}${tag}</div>`;
+              })
+              .join('')}</div>`
+          : '';
+
+        const meta = [];
+        if (d.duration_ms != null) meta.push(fmtDur(d.duration_ms));
+        meta.push(fmtTime(d.ts));
+        if (d.auto_strict) meta.push('<span class="auto-strict">⚐ auto-strict</span>');
+        else if (d.enforcement === 'strict') meta.push('<span class="auto-strict">⚐ strict</span>');
+        if (d.drift && d.drift.length) meta.push(`<span class="drift-chip">⤳ drift: ${escapeHtml(d.drift.join(', '))}</span>`);
+
+        const scoreLabel = d.status === 'running' ? 'running' : (d.score != null ? d.score + '/100' : '—');
+        const isAlert = !!d.alert || (d.status === 'complete' && d.score != null && d.score < alertBelow);
+        const alertBadge = isAlert
+          ? `<span class="alert-badge">⚠ alert&lt;${d.alert_threshold || alertBelow}</span>`
+          : '';
+        const returnSection = d.result_text
+          ? `<div class="sub-label">return</div><pre class="body">${escapeHtml(d.result_text)}</pre>`
+          : '';
+
+        return `
+          <div class="puppet" data-id="${d.id}" data-status="${d.status}" data-score-band="${band}" data-alert="${isAlert ? '1' : '0'}" data-drift="${d.drift && d.drift.length ? '1' : '0'}">
+            <div class="row">
+              <span class="ptype">${escapeHtml(d.puppet_type || 'general-purpose')}</span>
+              <span class="score-row">
+                <span class="score-pill">${scoreLabel}</span>
+                ${alertBadge}
+              </span>
+            </div>
+            <div class="title">${escapeHtml(d.title || '(untitled)')}</div>
+            <div class="meta">${meta.join(' · ')}</div>
+            ${(chipsIn || chipsOut || chipsTools) ? `<div class="contract-chips">${chipsIn}${chipsOut}${chipsTools}</div>` : ''}
+            ${d.briefing ? `<div class="sub-label">briefing</div><pre class="body">${escapeHtml(d.briefing)}</pre>` : ''}
+            ${returnSection}
+            ${violHtml}
+          </div>
+        `;
+      }
+
+      function rerenderStage() {
+        const arr = [...allDispatches.values()]
+          .sort((a, b) => (b.ts || '').localeCompare(a.ts || ''))
+          .filter(passesFilter);
+
+        if (arr.length === 0) {
+          puppetsEl.innerHTML = `
+            <div class="empty">
+              No puppets on stage.
+              <span class="hint">delegate a Task with a ---puppet-contract block to see it here.</span>
+            </div>`;
+          return;
+        }
+        puppetsEl.innerHTML = arr.map(renderPuppet).join('');
+
+        // Click → modal
+        for (const card of puppetsEl.querySelectorAll('.puppet')) {
+          card.addEventListener('click', () => openDetail(parseInt(card.dataset.id, 10)));
+        }
+      }
+
+      function pushTimeline(ev) {
+        const li = document.createElement('li');
+        li.className = 'tl-item';
+        li.dataset.kind = ev.kind;
+        const band = scoreBand(ev.score, ev.kind === 'complete' ? 'complete' : 'running');
+        li.dataset.scoreBand = band;
+
+        let subline = '';
+        let heading = ev.title || '(untitled)';
+        if (ev.kind === 'complete' && ev.score != null) {
+          subline = ` <span style="color:var(--ink-3)">· ${ev.score}/100${ev.alert ? ' ⚠' : ''}</span>`;
+        } else if (ev.kind === 'drift' && Array.isArray(ev.changed)) {
+          subline = ` <span style="color:var(--plum)">· ${escapeHtml(ev.changed.join(', '))}</span>`;
+        } else if (ev.kind === 'runtime_violation') {
+          heading = ev.tool_name || '(tool)';
+          const vk = (ev.violations && ev.violations[0] && ev.violations[0].kind) || '';
+          subline = ` <span style="color:var(--ink-3)">· ${escapeHtml(vk)} · ${escapeHtml(ev.enforcement || 'warn')}</span>`;
+        }
+        li.innerHTML = `
+          <div class="when">${fmtTime(ev.ts)}</div>
+          <div class="what">
+            <span class="kind">${escapeHtml(ev.kind)}</span>
+            <strong>${escapeHtml(heading)}</strong>${subline}
+          </div>
+        `;
+        timelineEl.prepend(li);
+        // Cap timeline at 100 items
+        while (timelineEl.children.length > 100) timelineEl.lastChild.remove();
+      }
+
+      function handleStreamEvent(ev) {
+        pushTimeline(ev);
+        const existing = ev.id != null ? allDispatches.get(ev.id) : null;
+        if (ev.kind === 'dispatch') {
+          const cached = existing || {};
+          allDispatches.set(ev.id, {
+            ...cached,
+            id: ev.id,
+            ts: ev.ts,
+            puppet_type: ev.puppet_type,
+            title: ev.title,
+            briefing: ev.briefing,
+            contract: ev.contract,
+            enforcement: ev.contract ? ev.contract.enforcement : 'warn',
+            auto_strict: ev.contract ? !!ev.contract._auto_strict : false,
+            drift: ev.drift || cached.drift || null,
+            status: 'running',
+            violations: cached.violations || [],
+            runtime_violations: cached.runtime_violations || [],
+            violation_count:
+              (cached.violations || []).length + (cached.runtime_violations || []).length,
+          });
+        } else if (ev.kind === 'complete') {
+          const merged = existing || {
+            id: ev.id,
+            ts: ev.ts,
+            puppet_type: ev.puppet_type,
+            title: ev.title,
+            contract: ev.contract,
+            enforcement: ev.contract ? ev.contract.enforcement : 'warn',
+            briefing: '',
+          };
+          merged.status = 'complete';
+          merged.score = ev.score;
+          merged.duration_ms = ev.duration_ms;
+          merged.result_text = ev.result_text;
+          merged.alert = !!ev.alert;
+          merged.alert_threshold = ev.alert_threshold;
+          merged.violations = (ev.violations || []).map((v) => ({ ...v, stage: 'return' }));
+          merged.violation_count =
+            merged.violations.length + (merged.runtime_violations || []).length;
+          allDispatches.set(ev.id, merged);
+        } else if (ev.kind === 'runtime_violation') {
+          const tagged = (ev.violations || []).map((v) => ({
+            ...v,
+            stage: 'runtime',
+            tool: ev.tool_name,
+          }));
+          if (existing) {
+            existing.runtime_violations = (existing.runtime_violations || []).concat(tagged);
+            existing.violation_count =
+              (existing.violations || []).length + existing.runtime_violations.length;
+            allDispatches.set(ev.id, existing);
+          } else {
+            // Race: runtime violation arrived before its dispatch event.
+            allDispatches.set(ev.id, {
+              id: ev.id,
+              status: 'running',
+              ts: ev.ts,
+              violations: [],
+              runtime_violations: tagged,
+              violation_count: tagged.length,
+            });
+          }
+        }
+        // 'drift' event is informational for the timeline; the dispatch event
+        // carries the drift list, so cards stay in sync without a special case.
+        rerenderStage();
+        refreshStats();
+      }
+
+      async function loadSnapshot() {
+        const r = await fetch('/api/recent?limit=100');
+        const rows = await r.json();
+        for (const row of rows) {
+          allDispatches.set(row.id, {
+            id: row.id,
+            ts: row.ts,
+            puppet_type: row.puppet_type,
+            title: row.title,
+            briefing: row.briefing,
+            contract: row.contract,
+            enforcement: row.enforcement,
+            auto_strict: row.auto_strict,
+            status: row.status,
+            score: row.score,
+            duration_ms: row.duration_ms,
+            result_text: row.result_text,
+            violation_count: row.violation_count,
+            drift: row.drift || null,
+            violations: [],
+            runtime_violations: [],
+          });
+        }
+        rerenderStage();
+      }
+
+      async function refreshStats() {
+        try {
+          const r = await fetch('/api/stats?days=7');
+          const s = await r.json();
+          if (s.alert_below) alertBelow = s.alert_below;
+          statTotal.textContent = s.total_dispatches;
+          statScore.textContent = s.avg_score == null ? '—' : s.avg_score;
+          statScore.className = 'num ' + (
+            s.avg_score == null ? '' :
+            s.avg_score >= 85 ? 'good' :
+            s.avg_score >= 60 ? 'warn' : 'bad'
+          );
+          const violCount = (s.violations_by_kind || []).reduce((sum, x) => sum + x.n, 0);
+          statViol.textContent = violCount;
+          statViol.className = 'num ' + (violCount === 0 ? 'good' : violCount < 5 ? 'warn' : 'bad');
+        } catch {}
+      }
+
+      async function openDetail(id) {
+        try {
+          const r = await fetch('/api/dispatch/' + id);
+          if (!r.ok) return;
+          const d = await r.json();
+          const content = document.getElementById('modal-content');
+          const vio = d.violations || [];
+          const contractYaml = d.contract ? yamlify(d.contract) : '(no contract attached)';
+          content.innerHTML = `
+            <h2>${escapeHtml(d.title || '(untitled)')}</h2>
+            <div class="modal-meta">
+              ${escapeHtml(d.puppet_type)} · ${fmtTime(d.ts)} ·
+              ${d.status === 'complete' ? (d.score + '/100') : 'running'} ·
+              ${d.enforcement}
+            </div>
+            <div class="sub-label">contract</div>
+            <pre>${escapeHtml(contractYaml)}</pre>
+            <div class="sub-label">briefing</div>
+            <pre>${escapeHtml(d.briefing || '(empty)')}</pre>
+            ${d.result_text ? `<div class="sub-label">return</div><pre>${escapeHtml(d.result_text)}</pre>` : ''}
+            ${vio.length ? `<div class="sub-label">violations</div>${vio.map((v) => `<div class="violation" data-stage="${escapeHtml(v.stage || 'return')}"><span class="kind">${escapeHtml(v.kind)}</span> ${escapeHtml(v.detail)}<span class="stage-tag">${escapeHtml(v.stage || 'return')}</span></div>`).join('')}` : ''}
+          `;
+          document.getElementById('modal-bg').classList.add('open');
+        } catch {}
+      }
+
+      function yamlify(c) {
+        const lines = [];
+        const fields = ['scope_in', 'scope_out', 'tools', 'enforcement'];
+        for (const f of fields) {
+          if (c[f] == null) continue;
+          if (Array.isArray(c[f])) lines.push(`${f}: [${c[f].join(', ')}]`);
+          else lines.push(`${f}: ${c[f]}`);
+        }
+        if (c.return_format) {
+          lines.push('return_format:');
+          lines.push(`  sections: [${(c.return_format.sections || []).join(', ')}]`);
+          lines.push(`  require_evidence: ${c.return_format.require_evidence}`);
+          if (c.return_format.min_words_per_section) {
+            lines.push(`  min_words_per_section: ${c.return_format.min_words_per_section}`);
+          }
+        }
+        if (c._auto_strict) lines.push('# auto-strict (sensitive paths detected)');
+        return lines.join('\n');
+      }
+
+      document.getElementById('close-modal').addEventListener('click', () => {
+        document.getElementById('modal-bg').classList.remove('open');
+      });
+      document.getElementById('modal-bg').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-bg') document.getElementById('modal-bg').classList.remove('open');
+      });
+
+      // Filters
+      for (const btn of document.querySelectorAll('.filter-btn')) {
+        btn.addEventListener('click', () => {
+          for (const b of document.querySelectorAll('.filter-btn')) b.classList.remove('active');
+          btn.classList.add('active');
+          currentFilter = btn.dataset.filter;
+          rerenderStage();
+        });
+      }
+
+      // Clear
+      document.getElementById('clear').addEventListener('click', async () => {
+        if (!confirm('Wipe all puppet-show history? This cannot be undone.')) return;
+        await fetch('/api/clear', { method: 'POST' });
+        allDispatches.clear();
+        timelineEl.innerHTML = '';
+        rerenderStage();
+        refreshStats();
+      });
+
+      // SSE
+      const es = new EventSource('/events');
+      es.onmessage = (m) => {
+        try { handleStreamEvent(JSON.parse(m.data)); } catch (e) { console.warn(e); }
+      };
+      es.onopen = () => { connState.textContent = 'listening'; };
+      es.onerror = () => { connState.textContent = 'reconnecting…'; };
+
+      // Boot
+      loadSnapshot().then(refreshStats);
+      setInterval(refreshStats, 15000);
+    </script>
+  </body>
+</html>

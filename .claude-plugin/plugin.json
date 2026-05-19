@@ -1,0 +1,9 @@
+{
+  "name": "puppet-show",
+  "version": "0.2.0",
+  "description": "Contract-bound puppets for Claude Code. Every subagent dispatch ships with a machine-verifiable contract (scope, tools, return format), and puppet-show validates compliance at return time. SQLite-backed, live dashboard, CLI audit, zero npm deps.",
+  "author": { "name": "ErickGCA", "url": "https://github.com/ErickGCA" },
+  "repository": "https://github.com/ErickGCA/puppet-show",
+  "license": "MIT",
+  "keywords": ["subagents", "orchestration", "observability", "anti-hallucination", "governance"]
+}

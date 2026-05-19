@@ -1,0 +1,29 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Runtime artifacts (these live in ~/.claude/puppet-show/, never in-repo)
+*.db
+*.db-wal
+*.db-shm
+*.log
+server.pid
+stream.jsonl
+
+# Brace-expansion garbage that's locked on Windows — exclude defensively
+{.claude-plugin,hooks,dashboard,skills/
+
+# Local secrets / env (shouldn't appear here but defensive)
+.env
+.env.*
+secrets/
