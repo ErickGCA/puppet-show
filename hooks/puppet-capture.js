@@ -39,20 +39,38 @@ process.stdin.on('end', () => {
 
 function handle(rawInput) {
   if (!rawInput.trim()) return;
-  const input = JSON.parse(rawInput);
-  if (input.tool_name !== 'Task') return;
 
+  // Diagnostic: log every invocation raw so we can see what Claude Code sends.
+  try {
+    fs.appendFileSync(
+      path.join(STREAM_DIR, 'debug.log'),
+      `${new Date().toISOString()} capture <<< ${rawInput.slice(0, 2000)}\n`
+    );
+  } catch {}
+
+  const input = JSON.parse(rawInput);
   const eventName = input.hook_event_name || '';
+
+  // Accept both shapes: legacy PreToolUse:Task / PostToolUse:Task AND the
+  // canonical SubagentStart / SubagentStop events. The Task tool name is not
+  // a real matcher in plugin hooks — SubagentStart/Stop is what actually
+  // fires when the Maestro dispatches a puppet.
+  const isStart = eventName === 'SubagentStart' || (eventName === 'PreToolUse' && input.tool_name === 'Task');
+  const isStop = eventName === 'SubagentStop' || (eventName === 'PostToolUse' && input.tool_name === 'Task');
+  if (!isStart && !isStop) return;
+
   const ts = new Date().toISOString();
   const toolInput = input.tool_input || {};
   const sessionId = input.session_id || null;
   const cwd = input.cwd || null;
-  const puppetType = toolInput.subagent_type || 'general-purpose';
-  const title = toolInput.description || '(untitled)';
+  const puppetType =
+    toolInput.subagent_type || input.subagent_type || input.agent_type || 'general-purpose';
+  const title = toolInput.description || input.description || '(untitled)';
+  const promptText = toolInput.prompt || input.prompt || '';
   const correlationKey = `${puppetType}::${title}`;
 
-  if (eventName === 'PreToolUse') {
-    const { contract, briefing } = extractContractFromPrompt(toolInput.prompt || '');
+  if (isStart) {
+    const { contract, briefing } = extractContractFromPrompt(promptText);
     store.open();
 
     // Phase 4 drift detection — compare against last dispatch with same key
@@ -104,13 +122,13 @@ function handle(rawInput) {
     return;
   }
 
-  if (eventName === 'PostToolUse') {
+  if (isStop) {
     store.open();
     const open = store.findOpenDispatch(correlationKey, sessionId);
     const dispatchId = open ? open.id : null;
     const contract = open && open.contract ? open.contract : null;
 
-    const resultText = normalizeResult(input.tool_response);
+    const resultText = normalizeResult(input.tool_response || input.result || input.output);
 
     // Validate return against contract
     const { violations } = checkReturn(contract, resultText);

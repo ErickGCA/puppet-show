@@ -41,6 +41,14 @@ process.stdin.on('end', () => {
 
 function handle(rawInput) {
   if (!rawInput.trim()) return process.exit(0);
+
+  try {
+    fs.appendFileSync(
+      path.join(STREAM_DIR, 'debug.log'),
+      `${new Date().toISOString()} runtime <<< ${rawInput.slice(0, 2000)}\n`
+    );
+  } catch {}
+
   const input = JSON.parse(rawInput);
   const toolName = input.tool_name;
   if (!toolName || toolName === 'Task') return process.exit(0);

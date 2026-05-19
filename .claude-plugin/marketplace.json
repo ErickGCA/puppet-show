@@ -10,7 +10,7 @@
     {
       "name": "puppet-show",
       "description": "Contract-bound puppets for Claude Code. Every Task() dispatch ships with a YAML contract (scope_in, scope_out, tools, return_format). PreToolUse hooks validate or block scope/tool violations at runtime; PostToolUse hooks validate the return format and per-finding evidence. Live SSE dashboard + CLI audit/history/suggest. SQLite-backed, zero npm deps.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": { "name": "ErickGCA", "url": "https://github.com/ErickGCA" },
       "source": "./",
       "category": "development",
